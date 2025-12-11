@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JARVIS Robot HUB</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Audiowide&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- 主3D画布容器 -->
+  <div id="canvas-container"></div>
+  
+  <!-- 手势光标指示器 -->
+  <div id="gesture-cursor">
+    <div class="cursor-ring"></div>
+    <div class="cursor-dot"></div>
+    <div class="hover-progress"></div>
+  </div>
+  
+  <!-- 摄像头预览 -->
+  <div id="video-container">
+    <video id="webcam" autoplay playsinline></video>
+    <canvas id="hand-canvas"></canvas>
+  </div>
+  
+  <!-- 沉浸式摄像头背景（双击右下角摄像头切换） -->
+  <div id="immersive-camera-bg">
+    <video id="immersive-video" autoplay playsinline muted></video>
+  </div>
+  
+  <!-- HUD 叠加层 -->
+  <div id="hud-overlay">
+    <!-- 顶部标题 - 科技感美化 -->
+    <div class="hud-top">
+      <div class="hud-title">
+        <div class="title-deco left"></div>
+        <div class="title-content">
+          <span class="title-prefix">[ </span>
+          <span class="title-main">JARVIS</span>
+          <span class="title-dot">•</span>
+          <span class="title-sub">HUB</span>
+          <span class="title-suffix"> ]</span>
+        </div>
+        <div class="title-deco right"></div>
+      </div>
+      <div class="title-underline"></div>
+    </div>
+    
+    <!-- 右上角 GitHub 按钮 -->
+    <div class="hud-top-right">
+      <a href="https://github.com/JASON-QWeb/JarvisRobotHub" target="_blank" class="btn-github">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M7.99992 1.33331C7.12444 1.33331 6.25753 1.50575 5.4487 1.84078C4.63986 2.17581 3.90493 2.66688 3.28587 3.28593C2.03563 4.53618 1.33325 6.23187 1.33325 7.99998C1.33325 10.9466 3.24659 13.4466 5.89325 14.3333C6.22659 14.3866 6.33325 14.18 6.33325 14C6.33325 13.8466 6.33325 13.4266 6.33325 12.8733C4.48659 13.2733 4.09325 11.98 4.09325 11.98C3.78659 11.2066 3.35325 11 3.35325 11C2.74659 10.5866 3.39992 10.6 3.39992 10.6C4.06659 10.6466 4.41992 11.2866 4.41992 11.2866C4.99992 12.3 5.97992 12 6.35992 11.84C6.41992 11.4066 6.59325 11.1133 6.77992 10.9466C5.29992 10.78 3.74659 10.2066 3.74659 7.66665C3.74659 6.92665 3.99992 6.33331 4.43325 5.85998C4.36659 5.69331 4.13325 4.99998 4.49992 4.09998C4.49992 4.09998 5.05992 3.91998 6.33325 4.77998C6.85992 4.63331 7.43325 4.55998 7.99992 4.55998C8.56659 4.55998 9.13992 4.63331 9.66659 4.77998C10.9399 3.91998 11.4999 4.09998 11.4999 4.09998C11.8666 4.99998 11.6333 5.69331 11.5666 5.85998C11.9999 6.33331 12.2533 6.92665 12.2533 7.66665C12.2533 10.2133 10.6933 10.7733 9.20659 10.94C9.44659 11.1466 9.66659 11.5533 9.66659 12.1733C9.66659 13.0666 9.66659 13.7866 9.66659 14C9.66659 14.18 9.77325 14.3933 10.1133 14.3333C12.7599 13.44 14.6666 10.9466 14.6666 7.99998C14.6666 7.1245 14.4941 6.25759 14.1591 5.44876C13.8241 4.63992 13.333 3.90499 12.714 3.28593C12.0949 2.66688 11.36 2.17581 10.5511 1.84078C9.7423 1.50575 8.8754 1.33331 7.99992 1.33331V1.33331Z" fill="currentcolor"></path>
+        </svg>
+        <span data-i18n="github">View on Github</span>
+      </a>
+    </div>
+    
+    <!-- 左上角状态面板（简洁版） -->
+    <div class="hud-status-mini">
+      <!-- 语言切换 -->
+      <div class="lang-switch">
+        <span class="lang-label active" id="lang-zh">中</span>
+        <div class="lang-toggle" id="lang-toggle" onclick="toggleLanguage()">
+          <div class="lang-toggle-knob"></div>
+        </div>
+        <span class="lang-label" id="lang-en">EN</span>
+      </div>
+      <div class="status-item">
+        <span class="status-icon">◈</span>
+        <span class="status-label" data-i18n="label_gesture">手势</span>
+        <span id="gesture-status" class="status-text" data-i18n="gesture_none">无</span>
+      </div>
+      <div class="status-item" id="focus-part-row">
+        <span class="status-icon">◉</span>
+        <span class="status-label" data-i18n="label_selected">选中</span>
+        <span id="focus-part-name" class="status-text highlight" data-i18n="robot">机器人</span>
+      </div>
+      <!-- 当前模式显示（可点击切换） -->
+      <div class="status-item mode-item">
+        <span class="status-label" data-i18n="label_mode">模式</span>
+        <div class="mode-selector">
+          <span id="gesture-mode-display" class="mode-display mode-watch" onclick="toggleModeDropdown(event)"><span data-i18n="mode_watch">监视模式</span> ▾</span>
+          <div id="mode-dropdown" class="mode-dropdown hidden">
+            <div class="mode-option mode-watch" data-mode="watch" onclick="selectMode('watch', event)">
+              <span data-i18n="mode_watch">监视模式</span>
+            </div>
+            <div class="mode-option mode-zoom" data-mode="zoom" onclick="selectMode('zoom', event)">
+              <span data-i18n="mode_zoom">缩放模式</span>
+            </div>
+            <div class="mode-option mode-explode" data-mode="explode" onclick="selectMode('explode', event)">
+              <span data-i18n="mode_explode">拆解模式</span>
+            </div>
+            <div class="mode-option mode-component" data-mode="component" onclick="selectMode('component', event)">
+              <span data-i18n="mode_component">组件模式</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 左下角操作指南（默认折叠） -->
+    <div class="control-panel" id="control-panel">
+      <div class="control-header" onclick="toggleControlPanel()">
+        <span class="control-title" data-i18n="guide_title">📖 操作指南</span>
+        <span class="control-toggle" id="control-toggle">▶</span>
+      </div>
+      <div class="control-content" id="control-content">
+        <!-- 控制模式切换 -->
+        <div class="control-mode-switch">
+          <button class="mode-btn active" id="btn-gesture" onclick="setControlMode('gesture')">🖐️ <span data-i18n="mode_gesture">手势</span></button>
+          <button class="mode-btn" id="btn-mouse" onclick="setControlMode('mouse')">🖱️ <span data-i18n="mode_mouse">鼠标</span></button>
+        </div>
+        
+        <!-- 手势操作说明（四模式系统） -->
+        <div class="control-guide" id="guide-gesture">
+          <!-- 左手：模式切换 -->
+          <div class="guide-section">
+            <div class="guide-title" data-i18n="left_hand_mode">左手切换模式</div>
+            <div class="guide-item"><span>☝️</span><span data-i18n="g_mode_watch">比划1 → 监视</span></div>
+            <div class="guide-item"><span>✌️</span><span data-i18n="g_mode_zoom">比划2 → 缩放</span></div>
+            <div class="guide-item"><span>🤟</span><span data-i18n="g_mode_explode">比划3 → 拆解</span></div>
+            <div class="guide-item"><span>🖖</span><span data-i18n="g_mode_component">比划4 → 组件</span></div>
+          </div>
+          <!-- 监视模式 -->
+          <div class="guide-section">
+            <div class="guide-title mode-watch-title" data-i18n="mode_watch_title">监视模式</div>
+            <div class="guide-item"><span>✋</span><span data-i18n="g_watch_rotate">张开 → 旋转视角</span></div>
+          </div>
+          <!-- 缩放模式 -->
+          <div class="guide-section">
+            <div class="guide-title mode-zoom-title" data-i18n="mode_zoom_title">缩放模式</div>
+            <div class="guide-item"><span>✋</span><span data-i18n="g_zoom_open">张开 → 放大</span></div>
+            <div class="guide-item"><span>✊</span><span data-i18n="g_zoom_fist">握拳 → 缩小</span></div>
+          </div>
+          <!-- 拆解模式 -->
+          <div class="guide-section">
+            <div class="guide-title mode-explode-title" data-i18n="mode_explode_title">拆解模式</div>
+            <div class="guide-item"><span>✋</span><span data-i18n="g_explode_open">张开 → 拆解</span></div>
+            <div class="guide-item"><span>👆</span><span data-i18n="g_explode_click">食指 → 点击选择</span></div>
+            <div class="guide-item"><span>✊</span><span data-i18n="g_explode_fist">握拳 → 聚合</span></div>
+          </div>
+          <!-- 组件模式 -->
+          <div class="guide-section">
+            <div class="guide-title mode-component-title" data-i18n="mode_component_title">组件模式</div>
+            <div class="guide-item"><span>✋↕️</span><span data-i18n="g_component_material">上下挥 → 切材质</span></div>
+            <div class="guide-item"><span>✋↔️</span><span data-i18n="g_component_part">左右挥 → 切组件</span></div>
+          </div>
+        </div>
+        
+        <!-- 鼠标操作说明 -->
+        <div class="control-guide hidden" id="guide-mouse">
+          <div class="guide-section">
+            <div class="guide-title" data-i18n="keyboard">键盘</div>
+            <div class="guide-item"><span>A</span><span data-i18n="k_explode">拆解</span></div>
+            <div class="guide-item"><span>S</span><span data-i18n="k_gather">聚拢</span></div>
+            <div class="guide-item"><span>↑↓</span><span data-i18n="k_material">切换材质</span></div>
+            <div class="guide-item"><span>←→</span><span data-i18n="k_part">切换零件</span></div>
+            <div class="guide-item"><span>ESC</span><span data-i18n="k_back">返回</span></div>
+          </div>
+          <div class="guide-section">
+            <div class="guide-title" data-i18n="mouse">鼠标</div>
+            <div class="guide-item"><span data-i18n="m_hover">悬停</span><span data-i18n="m_highlight">高亮零件</span></div>
+            <div class="guide-item"><span data-i18n="m_dblclick">双击</span><span data-i18n="m_enter">选择进入</span></div>
+            <div class="guide-item"><span data-i18n="m_drag">拖拽</span><span data-i18n="m_rotate">旋转视角</span></div>
+            <div class="guide-item"><span data-i18n="m_scroll">滚轮</span><span data-i18n="m_zoom">缩放</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 加载屏幕 -->
+  <div id="loading-screen">
+    <div class="loading-content">
+      <div class="arc-reactor">
+        <div class="reactor-ring ring-1"></div>
+        <div class="reactor-ring ring-2"></div>
+        <div class="reactor-ring ring-3"></div>
+        <div class="reactor-core"></div>
+      </div>
+      <div class="loading-text">
+        <span class="loading-title">INITIALIZING</span>
+        <span id="loading-status" data-i18n="loading">加载系统组件...</span>
+      </div>
+      <div class="loading-bar">
+        <div id="loading-progress" class="loading-fill"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 隐藏的状态元素（供 JS 使用） -->
+  <div style="display:none;">
+    <span id="hand-status">OFFLINE</span>
+    <span id="model-status">LOADING</span>
+    <span id="mode-status">组装</span>
+    <span id="hint-main"></span>
+    <span id="explosion-label">GLOBAL</span>
+    <span id="pinch-bar"></span>
+    <span id="pinch-value">0</span>
+    <span id="finger-count">0</span>
+    <span id="explosion-percent">0</span>
+    <svg><circle id="explosion-ring"/></svg>
+  </div>
+
+  <script>
+    // ========== 多语言支持 ==========
+    const i18n = {
+      zh: {
+        github: 'GitHub',
+        guide_title: '📖 操作指南',
+        mode_gesture: '手势',
+        mode_mouse: '鼠标',
+        keyboard: '键盘',
+        mouse: '鼠标',
+        // 模式名称
+        label_mode: '模式',
+        mode_watch: '监视模式',
+        mode_zoom: '缩放模式',
+        mode_explode: '拆解模式',
+        mode_component: '组件模式',
+        // 左手模式切换
+        left_hand_mode: '左手切换模式',
+        g_mode_watch: '比划1 → 监视',
+        g_mode_zoom: '比划2 → 缩放',
+        g_mode_explode: '比划3 → 拆解',
+        g_mode_component: '比划4 → 组件',
+        // 监视模式
+        mode_watch_title: '监视模式',
+        g_watch_rotate: '张开 → 旋转视角',
+        // 缩放模式
+        mode_zoom_title: '缩放模式',
+        g_zoom_open: '张开 → 放大',
+        g_zoom_fist: '握拳 → 缩小',
+        // 拆解模式
+        mode_explode_title: '拆解模式',
+        g_explode_open: '张开 → 拆解',
+        g_explode_click: '食指 → 点击选择',
+        g_explode_fist: '握拳 → 聚合',
+        // 组件模式
+        mode_component_title: '组件模式',
+        g_component_material: '上下挥 → 切材质',
+        g_component_part: '左右挥 → 切组件',
+        // 键盘操作
+        k_explode: '拆解',
+        k_gather: '聚拢',
+        k_material: '切换材质',
+        k_part: '切换零件',
+        k_back: '返回',
+        // 鼠标操作
+        m_hover: '悬停',
+        m_highlight: '高亮零件',
+        m_dblclick: '双击',
+        m_enter: '选择进入',
+        m_drag: '拖拽',
+        m_rotate: '旋转视角',
+        m_scroll: '滚轮',
+        m_zoom: '缩放',
+        // 其他
+        gesture_none: '无',
+        loading: '加载系统组件...',
+        label_gesture: '状态',
+        label_selected: '选中',
+        robot: '机器人'
+      },
+      en: {
+        github: 'GitHub',
+        guide_title: '📖 Controls',
+        mode_gesture: 'Gesture',
+        mode_mouse: 'Mouse',
+        keyboard: 'Keyboard',
+        mouse: 'Mouse',
+        // Mode names
+        label_mode: 'Mode',
+        mode_watch: 'Watch',
+        mode_zoom: 'Zoom',
+        mode_explode: 'Explode',
+        mode_component: 'Component',
+        // Left hand mode switch
+        left_hand_mode: 'Left Hand Modes',
+        g_mode_watch: '1 → Watch',
+        g_mode_zoom: '2 → Zoom',
+        g_mode_explode: '3 → Explode',
+        g_mode_component: '4 → Component',
+        // Watch mode
+        mode_watch_title: 'Watch Mode',
+        g_watch_rotate: 'Open → Rotate',
+        // Zoom mode
+        mode_zoom_title: 'Zoom Mode',
+        g_zoom_open: 'Open → Zoom In',
+        g_zoom_fist: 'Fist → Zoom Out',
+        // Explode mode
+        mode_explode_title: 'Explode Mode',
+        g_explode_open: 'Open → Explode',
+        g_explode_click: 'Point → Click',
+        g_explode_fist: 'Fist → Gather',
+        // Component mode
+        mode_component_title: 'Component Mode',
+        g_component_material: 'Up/Down → Material',
+        g_component_part: 'Left/Right → Part',
+        // Keyboard
+        k_explode: 'Explode',
+        k_gather: 'Gather',
+        k_material: 'Material',
+        k_part: 'Parts',
+        k_back: 'Back',
+        // Mouse
+        m_hover: 'Hover',
+        m_highlight: 'Highlight',
+        m_dblclick: 'Dbl-click',
+        m_enter: 'Enter',
+        m_drag: 'Drag',
+        m_rotate: 'Rotate',
+        m_scroll: 'Scroll',
+        m_zoom: 'Zoom',
+        // Others
+        gesture_none: 'None',
+        loading: 'Loading...',
+        label_gesture: 'Status',
+        label_selected: 'Selected',
+        robot: 'Robot'
+      }
+    };
+    
+    // 当前语言
+    let currentLang = 'zh';
+    // 沉浸模式开关
+    let isImmersiveMode = false;
+    
+    // 检测系统语言并初始化
+    function detectAndSetLanguage() {
+      const browserLang = navigator.language || navigator.userLanguage;
+      const isEnglish = browserLang.toLowerCase().startsWith('en');
+      currentLang = isEnglish ? 'en' : 'zh';
+      applyLanguage(currentLang);
+    }
+    
+    // 应用语言
+    function applyLanguage(lang) {
+      currentLang = lang;
+      window.currentLang = lang; // 暴露给 TypeScript 代码使用
+      const toggle = document.getElementById('lang-toggle');
+      const langZh = document.getElementById('lang-zh');
+      const langEn = document.getElementById('lang-en');
+      
+      if (lang === 'en') {
+        toggle.classList.add('en');
+        langZh.classList.remove('active');
+        langEn.classList.add('active');
+        document.documentElement.lang = 'en';
+      } else {
+        toggle.classList.remove('en');
+        langZh.classList.add('active');
+        langEn.classList.remove('active');
+        document.documentElement.lang = 'zh-CN';
+      }
+      
+      // 更新所有带 data-i18n 的元素
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (i18n[lang][key]) {
+          el.textContent = i18n[lang][key];
+        }
+      });
+      
+      // 保存到 localStorage
+      localStorage.setItem('jarvis-lang', lang);
+    }
+    
+    // 切换语言
+    function toggleLanguage() {
+      const newLang = currentLang === 'zh' ? 'en' : 'zh';
+      applyLanguage(newLang);
+    }
+    
+    // 页面加载时初始化语言
+    document.addEventListener('DOMContentLoaded', () => {
+      const savedLang = localStorage.getItem('jarvis-lang');
+      if (savedLang) {
+        applyLanguage(savedLang);
+      } else {
+        detectAndSetLanguage();
+      }
+
+      const videoContainer = document.getElementById('video-container');
+      if (videoContainer) {
+        videoContainer.addEventListener('dblclick', () => toggleImmersiveMode());
+      }
+
+      const webcam = document.getElementById('webcam');
+      if (webcam) {
+        webcam.addEventListener('loadeddata', syncImmersiveVideoStream);
+      }
+    });
+    
+    // 控制面板折叠/展开
+    function toggleControlPanel() {
+      const panel = document.getElementById('control-panel');
+      const toggle = document.getElementById('control-toggle');
+      panel.classList.toggle('expanded');
+      toggle.textContent = panel.classList.contains('expanded') ? '▼' : '▶';
+    }
+    
+    // 控制模式切换
+    function setControlMode(mode) {
+      const btnGesture = document.getElementById('btn-gesture');
+      const btnMouse = document.getElementById('btn-mouse');
+      const guideGesture = document.getElementById('guide-gesture');
+      const guideMouse = document.getElementById('guide-mouse');
+      const videoContainer = document.getElementById('video-container');
+      
+      if (mode === 'gesture') {
+        btnGesture.classList.add('active');
+        btnMouse.classList.remove('active');
+        guideGesture.classList.remove('hidden');
+        guideMouse.classList.add('hidden');
+        videoContainer.style.display = 'block';
+      } else {
+        btnMouse.classList.add('active');
+        btnGesture.classList.remove('active');
+        guideMouse.classList.remove('hidden');
+        guideGesture.classList.add('hidden');
+        exitImmersiveMode();
+        videoContainer.style.display = 'none';
+      }
+    }
+    
+    // ========== 沉浸模式（双击摄像头预览） ==========
+    function syncImmersiveVideoStream() {
+      const webcam = document.getElementById('webcam');
+      const immersiveVideo = document.getElementById('immersive-video');
+      if (!webcam || !immersiveVideo) return;
+      if (webcam.srcObject && immersiveVideo.srcObject !== webcam.srcObject) {
+        immersiveVideo.srcObject = webcam.srcObject;
+        immersiveVideo.muted = true;
+        immersiveVideo.play().catch(() => {});
+      }
+    }
+
+    function enterImmersiveMode() {
+      const immersiveBg = document.getElementById('immersive-camera-bg');
+      if (!immersiveBg) return;
+      syncImmersiveVideoStream();
+      immersiveBg.classList.add('active');
+      document.body.classList.add('immersive-mode');
+      isImmersiveMode = true;
+      if (window.setStarfieldVisible) window.setStarfieldVisible(false);
+    }
+
+    function exitImmersiveMode() {
+      const immersiveBg = document.getElementById('immersive-camera-bg');
+      if (!immersiveBg) return;
+      immersiveBg.classList.remove('active');
+      document.body.classList.remove('immersive-mode');
+      isImmersiveMode = false;
+      if (window.setStarfieldVisible) window.setStarfieldVisible(true);
+    }
+
+    function toggleImmersiveMode() {
+      if (isImmersiveMode) {
+        exitImmersiveMode();
+      } else {
+        enterImmersiveMode();
+      }
+    }
+
+    // ========== 手势模式下拉列表 ==========
+    
+    let dropdownClickListener = null;
+    
+    // 切换模式下拉列表显示/隐藏
+    function toggleModeDropdown(event) {
+      if (event) event.stopPropagation();
+      
+      const dropdown = document.getElementById('mode-dropdown');
+      const isHidden = dropdown.classList.contains('hidden');
+      
+      if (isHidden) {
+        dropdown.classList.remove('hidden');
+        // 延迟添加外部点击监听，避免立即触发
+        setTimeout(() => {
+          dropdownClickListener = function(e) {
+            closeModeDropdown(e);
+          };
+          document.addEventListener('click', dropdownClickListener);
+        }, 50);
+      } else {
+        dropdown.classList.add('hidden');
+        if (dropdownClickListener) {
+          document.removeEventListener('click', dropdownClickListener);
+          dropdownClickListener = null;
+        }
+      }
+    }
+    
+    // 关闭模式下拉列表
+    function closeModeDropdown(e) {
+      const dropdown = document.getElementById('mode-dropdown');
+      const modeSelector = document.querySelector('.mode-selector');
+      
+      // 如果点击在 mode-selector 内部，不关闭（让选项点击事件处理）
+      if (modeSelector && modeSelector.contains(e.target)) {
+        return;
+      }
+      
+      dropdown.classList.add('hidden');
+      if (dropdownClickListener) {
+        document.removeEventListener('click', dropdownClickListener);
+        dropdownClickListener = null;
+      }
+    }
+    
+    // 选择模式（通过点击，不受 5 秒 CD 限制）
+    function selectMode(mode, event) {
+      if (event) event.stopPropagation();
+      
+      const dropdown = document.getElementById('mode-dropdown');
+      dropdown.classList.add('hidden');
+      if (dropdownClickListener) {
+        document.removeEventListener('click', dropdownClickListener);
+        dropdownClickListener = null;
+      }
+      
+      // 调用手势控制器切换模式（byGesture = false，不受CD限制）
+      if (window.gestureController) {
+        window.gestureController.setMode(mode, false);
+        console.log('[UI] 切换模式:', mode);
+      } else {
+        console.warn('[UI] gestureController 未初始化');
+      }
+      
+      // 更新显示
+      updateModeDisplayUI(mode);
+    }
+    
+    // 更新模式显示 UI
+    function updateModeDisplayUI(mode) {
+      const modeDisplay = document.getElementById('gesture-mode-display');
+      const modeNames = {
+        watch: i18n[currentLang].mode_watch,
+        zoom: i18n[currentLang].mode_zoom,
+        explode: i18n[currentLang].mode_explode,
+        component: i18n[currentLang].mode_component
+      };
+      
+      if (modeDisplay) {
+        modeDisplay.textContent = (modeNames[mode] || mode) + ' ▾';
+        modeDisplay.className = `mode-display mode-${mode}`;
+      }
+      
+      // 更新下拉列表选中状态
+      document.querySelectorAll('.mode-option').forEach(opt => {
+        opt.classList.remove('selected');
+        if (opt.dataset.mode === mode) {
+          opt.classList.add('selected');
+        }
+      });
+    }
+  </script>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
